@@ -139,7 +139,7 @@ void *switch_calloc(size_t nitems, size_t size) //Further look
     }
     else
     {
-        return switch_malloc(nitems*size);
+        return switch_malloc(nitems * size);
     }
 }
 
@@ -178,7 +178,90 @@ int create_fd(int size)
 {
 
     int fd = shm_open("/myregion", O_CREAT | O_RDWR,
-                      S_IRWXO | S_IRUSR | S_IWUSR);
+                      S_IRWXO | S_IRUSR | S_IWUSR); //permision specified
+    if (fd == -1)
+    {
+        perror("Error in shm_open");
+        return -1;
+    }
+
+    if (ftruncate(fd, size) == -1)
+    {
+        perror("Error in ftruncate");
+        return -1;
+    }
+
+    return fd;
+}
+
+void *switch_malloc_share(size_t size)
+{
+
+    size_t len = size + sizeof(size) * 2;
+    int *temp;
+    len = PAGE_ALIGN(len);
+    int fd = create_fd(len);
+    if (fd == -1)
+    {
+        return NULL;
+    }
+
+    temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0); //a shared object version
+    if (temp == MAP_FAILED)
+    {
+        fprintf(stderr, "Error in mmap\n");
+        return NULL;
+    }
+    else
+    {
+        temp[0] = fd;
+        temp[1] = len;
+        return (void *)(&temp[2]);
+    }
+}
+
+void *switch_realloc_share(void *ptr, size_t size)
+{
+
+    size_t old_len = grab_length(ptr);
+    size_t new_len = size + sizeof(size) * 2;
+
+    int *plen = (int *)ptr;
+    plen--; //return to len block
+    plen--; //return to fd block
+    int fd = *plen;
+
+    int fd = create_fd(new_len);
+    if (fd == -1)
+    {
+        return NULL;
+    }
+
+    if (ftruncate(fd, new_len) == -1)
+    {
+        perror("Error in ftruncate");
+        return NULL;
+    }
+
+    int *temp = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
+
+    temp[0] = fd;
+    temp[1] = new_len;
+    return (void *)(&temp[2]);
+}
+
+int create_fd_share(int size)
+{
+    pid_t tid = gettid();
+
+    char root[] = "/";
+    char tid_string[5];
+
+    itoa(tid, tid_string, 5);
+    sprintf(tid_string, "%d", tid);
+
+    int fd = shm_open(strcat(root, tid_string), O_CREAT | O_RDWR,
+                      S_IRWXO | S_IRUSR | S_IWUSR); //permision specified
     if (fd == -1)
     {
         perror("Error in shm_open");

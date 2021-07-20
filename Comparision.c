@@ -132,8 +132,8 @@ void *switch_thread() //This is a thread for simulating the function
         gettimeofday(&start, NULL);
         n = (int*)switch_realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        //sleep(1);
-        //n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
+        // sleep(1);
+        // n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
