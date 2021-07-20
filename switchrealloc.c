@@ -231,7 +231,6 @@ void *switch_realloc_share(void *ptr, size_t size)
     plen--; //return to fd block
     int fd = *plen;
 
-    int fd = create_fd(new_len);
     if (fd == -1)
     {
         return NULL;
@@ -257,7 +256,6 @@ int create_fd_share(int size)
     char root[] = "/";
     char tid_string[5];
 
-    itoa(tid, tid_string, 5);
     sprintf(tid_string, "%d", tid);
 
     int fd = shm_open(strcat(root, tid_string), O_CREAT | O_RDWR,
