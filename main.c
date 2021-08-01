@@ -1,14 +1,4 @@
-#include "Comparision.c"
-
-// void *mmap_thread()
-// {
-//     __mmap_thread();
-// }
-
-// void *malloc_thread()
-// {
-//     __malloc_thread();
-// }
+#include "Comparison.c"
 
 int main(int argc, char *argv[]) //4GB
 {
@@ -17,8 +7,6 @@ int main(int argc, char *argv[]) //4GB
 
     char *first_para = argv[1];
     looping = atoi(first_para);
-
-    // double counter1 = counter * 1024 * 256;
 
     char *second_para = argv[2];
     int thread_counter = atoi(second_para);
@@ -31,22 +19,27 @@ int main(int argc, char *argv[]) //4GB
     for (int i = 0; i < thread_counter; i++)
     {
 
-        if (mode_selection == 1)
-        {
-            pthread_create(&tid, NULL, mmap_thread, NULL); // mode 1 for mmap
-        }
-        else if (mode_selection == 0)
+        if (mode_selection == 0)
         {
             pthread_create(&tid, NULL, malloc_thread, NULL); //mode 0 for malloc
         }
+        // else if (mode_selection == 1)
+        // {
+        //     pthread_create(&tid, NULL, mmaprelease_thread, NULL); // mode 1 for mmap release
+        // }
+        else if (mode_selection == 1)
+        {
+            pthread_create(&tid, NULL, mmap_thread, NULL); //mode 1 for mmap
+        }
+        else if (mode_selection == 2)
+        {
+            pthread_create(&tid, NULL, hybrid_thread, NULL); //mode 2 for hybird
+        }
         else
         {
-            pthread_create(&tid, NULL, switch_thread, NULL); //mode 2 for hybird
-        }           //need to enhance the size of /dev/shm for a larger size, otherwise it is limited in 3.9G
-                    //https://stackoverflow.com/questions/58804022/how-to-resize-dev-shm
-
-        //p
+            printf("Wrong selection number");
+        }
     }
-
+    //https://stackoverflow.com/questions/58804022/how-to-resize-dev-shm
     pthread_exit(NULL);
 }

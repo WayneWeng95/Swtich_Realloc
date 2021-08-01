@@ -1,84 +1,82 @@
 #include "switchrealloc.h"
 
-void *switch_malloc(size_t size)
-{ //In this malloc, switch between glibc malloc(<256Kb) and mmap(>256Kb)
+void *_malloc(size_t size)
+{ //In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point) current switch point as 128KB
 
-    size_t len = size + sizeof(size) * 2; //two addition int block is needed
+    size_t len = size + sizeof(size) * 3; //two addition int block is needed
+    int count = 0;                        //for copy prediction
+    int fd = -1;                          //for file_descriptor, which helps judge the mmap and malloc
+    int *temp = NULL;
 
-    int *temp;
-
-    if (len <= KB * SWITCH_POINT)
+    if (len <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE)
     {
         temp = (int *)malloc(len + 1);
         //fprintf(stdout, "Malloc branch\n");
         if (temp)
         {
-            temp[0] = -1;
-            temp[1] = len;
-            return (void *)(&temp[2]);
+            temp = __assign_header(temp, fd, count, size);
+            return (void *)(&temp[3]);
         }
         else
         {
-            fprintf(stderr, "Error in malloc");
+            perror("Error in malloc");
             return NULL;
         }
     }
     else
     {
         len = PAGE_ALIGN(len);
-        int fd = create_fd(len);
+        fd = __create_fd(len);
         if (fd == -1)
         {
             return NULL;
         }
 
         temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
-        //MAP_PRIVATE | MAP_ANONYMOUS
         //fprintf(stdout, "Mmap branch\n");
         if (temp == MAP_FAILED)
         {
-            fprintf(stderr, "Error in mmap\n");
+            perror("Error in mmap\n");
             return NULL;
         }
         else
         {
-            temp[0] = fd;
-            temp[1] = len;
-            return (void *)(&temp[2]);
+            temp = __assign_header(temp, fd, count, size);
+            return (void *)(&temp[3]);
         }
     }
 }
 
-void *switch_realloc(void *ptr, size_t size)
+void *_realloc(void *ptr, size_t size)
 { //once realloc need to allocate space larger than 256Kb it switch from realloc to mremap
-    size_t old_len = grab_length(ptr);
-    size_t new_len = size + sizeof(size) * 2;
+    size_t old_len = grab_length(ptr) + sizeof(size) * 3;
+    size_t new_len = size + sizeof(size) * 3;
 
     int *plen = (int *)ptr;
     plen--; //return to len block
+    plen--; //return to count block
     plen--; //return to fd block
     int fd = *plen;
-
-    //printf("len is:%ld\n", len);
 
     if (plen == NULL)
     {
         return NULL;
     }
 
-    if (new_len <= KB * SWITCH_POINT)
+    if ((new_len <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE) && (plen[1] <= MALLOC_HOTLEVEL || plen[2] <= MAPPING_POINT) && fd == -1)
     {
         int *temp = (int *)realloc(plen, new_len + 1); //this seems better to use sbrk()
-        temp[1] = new_len;                             //incrementing this part
-        return (void *)(&temp[2]);
+        temp[1]++;
+        temp[2] = size; //incrementing this part
+        return (void *)(&temp[3]);
     }
     else
     {
         new_len = PAGE_ALIGN(new_len);
-        int *temp;
+        int *temp = NULL;
         if (fd == -1) //current in first block
         {
-            int fd = create_fd(new_len);
+            int fd = __create_fd(new_len);
             if (fd == -1)
             {
                 return NULL;
@@ -91,14 +89,21 @@ void *switch_realloc(void *ptr, size_t size)
                 perror("Error mmapping the file");
                 return NULL;
             }
+            memset(temp, 0, old_len);
             memcpy(temp, plen, old_len);
             temp[0] = fd;
-            temp[1] = new_len;
+            temp[1] = 0;
+            temp[2] = size;
             free(plen);
-            return (void *)(&temp[2]);
+            return (void *)(&temp[3]);
         }
         else
         {
+            if (plen[1] >= MMAP_HOTLEVEL && ENABLE_HUGLETLB == 1 && plen[2] >= HUGE_TLB_POINT)
+            {
+                new_len = HUGE_PAGE_ALIGN(new_len);
+            }
+
             if (ftruncate(fd, new_len) == -1)
             {
                 perror("Error in ftruncate");
@@ -110,57 +115,65 @@ void *switch_realloc(void *ptr, size_t size)
             //This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
             // This leaves the existing mapping in place after moving the page table entries.
             temp[0] = fd;
-            temp[1] = new_len;
-            return (void *)(&temp[2]);
+            temp[1]++;
+            temp[2] = size;
+            return (void *)(&temp[3]);
         }
     }
 }
 
-void *switch_calloc(size_t nitems, size_t size) //Further look
+void *_calloc(size_t nitems, size_t size) //Further look
 {
-    size_t len = nitems * size + sizeof(size) * 2;
+    size_t len = nitems * size + sizeof(size) * 3;
+    int count = 0;
 
     int *p = NULL;
+    int fd = -1;
 
-    if (size <= KB * SWITCH_POINT)
+    if (size <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE)
     {
-        p = (int *)calloc(nitems + 1, size);
+        p = (int *)calloc(len + 1, size);
         if (p)
         {
-            p[0] = -1;
-            p[1] = len;
-            return (void *)(&p[2]);
+            p = __assign_header(p, fd, count, nitems * size);
+            return (void *)(&p[3]);
         }
         else
         {
-            fprintf(stderr, "Error in calloc");
+            perror("Error in calloc");
             return NULL;
         }
     }
     else
     {
-        return switch_malloc(nitems * size);
+        return _malloc(nitems * size);
     }
 }
 
-void switch_free(void *ptr)
+void _free(void *ptr)
 {
-    size_t len = grab_length(ptr);
+    size_t len = grab_length(ptr) + sizeof(size_t) * 3;
 
-    int *plen = (int *)ptr;
-    plen--;
-    plen--;
+    int *plen = (int *)__go_to_head(ptr);
 
-    if (len <= KB * SWITCH_POINT + sizeof(len) * 2)
+    if (len <= KB * SWITCH_POINT + sizeof(len) * 3 - AGGRESIVE * PAGE_SIZE)
     {
         //fprintf(stdout, "Malloc branch\n");
-        free((int *)plen);
+        free(plen);
     }
     else
     {
         //fprintf(stdout, "Mmap branch\n");
         munmap((void *)plen, len);
     }
+}
+
+int *__assign_header(int *ptr, int fd, int count, int size)
+{
+    ptr[0] = -1;
+    ptr[1] = count;
+    ptr[2] = size;
+    return ptr;
 }
 
 size_t grab_length(void *ptr)
@@ -174,7 +187,23 @@ size_t grab_length(void *ptr)
     return len;
 }
 
-int create_fd(int size)
+void *__go_to_head(void *ptr)
+{
+    int *plen = (int *)ptr;
+    plen--;
+    plen--;
+    plen--;
+    return (void *)plen;
+}
+
+void *__go_to_size(void *ptr)
+{
+    int *plen = (int *)ptr;
+    plen--;
+    return (void *)plen;
+}
+
+int __create_fd(int size)
 {
 
     int fd = shm_open("/myregion", O_CREAT | O_RDWR,
@@ -194,62 +223,7 @@ int create_fd(int size)
     return fd;
 }
 
-void *switch_malloc_share(size_t size)
-{
-
-    size_t len = size + sizeof(size) * 2;
-    int *temp;
-    len = PAGE_ALIGN(len);
-    int fd = create_fd(len);
-    if (fd == -1)
-    {
-        return NULL;
-    }
-
-    temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0); //a shared object version
-    if (temp == MAP_FAILED)
-    {
-        fprintf(stderr, "Error in mmap\n");
-        return NULL;
-    }
-    else
-    {
-        temp[0] = fd;
-        temp[1] = len;
-        return (void *)(&temp[2]);
-    }
-}
-
-void *switch_realloc_share(void *ptr, size_t size)
-{
-
-    size_t old_len = grab_length(ptr);
-    size_t new_len = size + sizeof(size) * 2;
-
-    int *plen = (int *)ptr;
-    plen--; //return to len block
-    plen--; //return to fd block
-    int fd = *plen;
-
-    if (fd == -1)
-    {
-        return NULL;
-    }
-
-    if (ftruncate(fd, new_len) == -1)
-    {
-        perror("Error in ftruncate");
-        return NULL;
-    }
-
-    int *temp = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
-
-    temp[0] = fd;
-    temp[1] = new_len;
-    return (void *)(&temp[2]);
-}
-
-int create_fd_share(int size)
+int __create_fd_share(int size)
 {
     pid_t tid = gettid();
 
@@ -273,4 +247,59 @@ int create_fd_share(int size)
     }
 
     return fd;
+}
+
+void *_malloc_share(size_t size)
+{
+
+    size_t len = size + sizeof(size) * 3;
+    int *temp;
+    len = PAGE_ALIGN(len);
+    int count = 0;
+    int fd = __create_fd_share(len);
+    if (fd == -1)
+    {
+        return NULL;
+    }
+
+    temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0); //a shared object version
+    if (temp == MAP_FAILED)
+    {
+        perror("Error in mmap\n");
+        return NULL;
+    }
+    else
+    {
+        temp = __assign_header(temp, fd, count, size);
+        return (void *)(&temp[3]);
+    }
+}
+
+void *_realloc_share(void *ptr, size_t size)
+{
+
+    size_t old_len = grab_length(ptr) + sizeof(size) * 3;
+    size_t new_len = size + sizeof(size) * 3;
+
+    int *plen = (int *)__go_to_head(ptr);
+    int fd = plen[0];
+    int count = plen[1];
+
+    if (fd == -1)
+    {
+        return NULL;
+    }
+
+    if (ftruncate(fd, new_len) == -1)
+    {
+        perror("Error in ftruncate");
+        return NULL;
+    }
+
+    int *temp = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
+
+    temp = __assign_header(temp, fd, count++, size);
+
+    free(plen);
+    return (void *)(&temp[3]);
 }
