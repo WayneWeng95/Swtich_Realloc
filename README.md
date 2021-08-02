@@ -5,9 +5,13 @@ Current Work in Progress.
 
 ## Finished:
 structure switching
+
 mremap for larger space
+
 aggressive switch
+
 config.h
+
 counter for prediction
 
 ## Todo:

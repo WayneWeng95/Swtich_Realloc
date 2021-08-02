@@ -5,13 +5,15 @@ do
 
 echo "iteration $i"
 
-./../test $2 $3 $4 >> ../data/size/$2/$4.txt  #for data size
+#./../test $2 $3 $4 >> ../data/size/$2/$4.txt  #for data size
 
 #./test $2 $3 $4 >> $3.txt #for parallel
 
 #source test.sh $2 $3 $4 >> results.txt
 
 #./test $2 $3 $4 >> $5.txt # for switch point testing
+
+./../test $2 $3 $4 >> $2.txt  #for data size with same method
 
 sleep 10s
 

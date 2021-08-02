@@ -181,9 +181,6 @@ void *malloc_thread()
 
 void *hybrid_thread() //This is a thread for simulating the function
 {
-
-    n = NULL;
-
     n = _malloc(PAGE_SIZE);
 
     if (n == NULL)
@@ -210,7 +207,7 @@ void *hybrid_thread() //This is a thread for simulating the function
 
     pid_t tid = gettid();
 
-    printf("Hybird : %d,%.0lf\n", tid, total_time);
+    printf("HY : %d,%.0lf\n", tid, total_time);
 
     _free(n);
 

@@ -17,17 +17,14 @@
 
 #include "Config.h"
 
-#define __ALIGN_KERNEL(x, a) __ALIGN_KERNEL_MASK(x, (typeof(x))(a)-1)
-#define __ALIGN_KERNEL_MASK(x, mask) (((x) + (mask)) & ~(mask))
-#define ALIGN(x, a) __ALIGN_KERNEL((x), (a))
-#define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
-#define HUGE_PAGE_ALIGN(addr) ALIGN(addr, HUGE_PAGE_SIZE)
-
 // #define O_CREAT 0100
 // #define O_RDWR 02
 #define MS 1000000
 #define KB 1024
-#define PAGE_SIZE getpagesize()
+//#define OFFSET sizeof(size_t) * 3
+#define OFFSET 24
+//#define PAGE_SIZE getpagesize()
+#define PAGE_SIZE 4096
 
 void *_malloc(size_t);
 
