@@ -50,7 +50,7 @@ void *mmap_thread()
         n = mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
         gettimeofday(&end, NULL);
         // sleep(1);
-        //n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
+        n[new_size_of_mem / 8 - 100] = 1;
         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
         if (n == (void *)-1)
         {
@@ -121,7 +121,7 @@ void *mmaprelease_thread(){
         gettimeofday(&end, NULL);
         shm_address = n;
         // sleep(1);
-        //n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
+        n[new_size_of_mem / 8 - 100] = 1;
         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
         if (n == (void *)-1)
         {
@@ -165,7 +165,7 @@ void *malloc_thread()
         gettimeofday(&start, NULL);
         n = realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        // n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
+        n[new_size_of_mem / 8 - 100] = 1;
         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
