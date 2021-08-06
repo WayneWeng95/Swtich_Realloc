@@ -149,6 +149,11 @@ void *_realloc(void *ptr, size_t size)
 #endif
         int *temp = (int *)realloc(plen, new_len + 1); //this seems better to use sbrk()
         temp[2] = size;                                //incrementing this part
+#if MMAP_IN_SMALLSIZE
+        if(temp != plen){
+            temp[1] += SMALL_SIZE_INCREASE;
+        }
+#endif
         return (void *)(&temp[3]);
     }
     else
