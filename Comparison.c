@@ -20,7 +20,7 @@ void *mmap_thread()
 
     int *shm_address = mmap(NULL, size_of_mem,
                             PROT_READ | PROT_WRITE | PROT_EXEC,
-                            MAP_SHARED, fd, 0);
+                            MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
     if (shm_address == MAP_FAILED)
     {
         perror("Error mmapping the file");
@@ -200,7 +200,7 @@ void *hybrid_thread() //This is a thread for simulating the function
         n = (int *)_realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
         // sleep(1);
-        // n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
+        n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }

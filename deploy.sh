@@ -21,5 +21,7 @@ cd Swtich_Realloc
 
 ./compile.sh
 
+base64 /dev/urandom | head -c 2147000000 > file.txt
+
 echo "aws s3 cp 18.txt s3://allocatortest"
 

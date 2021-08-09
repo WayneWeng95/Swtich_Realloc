@@ -6,23 +6,6 @@
 #define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
 #define HUGE_PAGE_ALIGN(addr) ALIGN(addr, HUGE_PAGE_SIZE)
 
-#ifndef MMAP_IN_SMALLSIZE
-#define MAPPING_POINT 16
-#define MALLOC_HOTLEVEL 40
-#endif
-
-#ifndef ENABLE_HUGLETLB
-#define HUGE_TLB_POINT 1024 * 1024
-#define MMAP_HOTLEVEL 20
-#define HUGE_PAGE_SIZE 2 * 1024 * 1024
-#endif
-#ifndef ENABLE_UNSHRINK_NOW
-#define UNSHRINK_THRESHOULD 5
-#endif
-#ifndef AGGRESIVE
-#define AGGRESIVE 1024
-#endif
-
 
 void *_malloc(size_t size)
 { //In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
@@ -80,6 +63,7 @@ void *_realloc(void *ptr, size_t size)
     int fd = plen[0];
     size_t old_len = plen[2] + OFFSET;
     size_t new_len = size + OFFSET;
+
 #if ENABLE_PREDICTION
 
     if (old_len > new_len)
@@ -91,7 +75,7 @@ void *_realloc(void *ptr, size_t size)
                 return (void *)(&plen[3]);
             }
     #endif
-        plen[1]--;
+        plen[1]-=SHRINKING_LEVEL;
     }
     else
     {
@@ -167,6 +151,8 @@ void *_realloc(void *ptr, size_t size)
             //this indicates its a result from malloc
             temp = (int *)mmap(NULL, new_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0); //MAP_PRIVATE | MAP_ANONYMOUS
 
+            //fprintf(stderr, "Switching\n");
+
             if (temp == MAP_FAILED)
             {
                 perror("Error mmapping the file");
@@ -196,6 +182,8 @@ void *_realloc(void *ptr, size_t size)
             }
 
             plen = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
+
+            //fprintf(stderr, "remap\n");
 
             //This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
             // This leaves the existing mapping in place after moving the page table entries.
