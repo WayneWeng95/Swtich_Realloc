@@ -123,10 +123,15 @@ void *_malloc_rand(int *p)
     return 0;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 
     FILE *file = fopen(sizePath, "r");
+
+    int mode;
+
+    char *first_para = argv[1];
+    mode = atoi(first_para);
 
     int i = 0;
     int num;
@@ -147,9 +152,22 @@ int main()
 
     if (testBuff == fSize)
     {
-        //malloc_rand(integers);
-        mmap_rand(integers);
-        //_malloc_rand(integers);
+        switch (mode)
+        {
+        case 0:
+            malloc_rand(integers);
+            break;
+        case 1:
+            mmap_rand(integers);
+            break;
+        case 2:
+            _malloc_rand(integers);
+            break;
+        default:
+            printf("Wrong mode, 0 for malloc, 1 for mmap, 2 for _malloc");
+            break;
+        }
+
     }
     fclose(pFile);
     free(buffer);
