@@ -15,23 +15,23 @@
 #include <sys/types.h>
 
 #define INIT_SIZE 4096
-#define SWITCH_OFFSET 3*sizeof(int)
+#define SWITCH_OFFSET 3 * sizeof(int)
 #define DATA_HALF 1
 #define SLEEP_TIME 0
 
 thread_local clock_t t1, t2;
 thread_local double total_time;
 thread_local char *n;
-thread_local int looping;
+int looping;
 char filePath[] = "file.txt";
-char sizePath[] = "randinput/rand6.txt";
+char sizePath[] = "rand7.txt";
 FILE *pFile;
 int fSize, testBuff;
 char *buffer;
 char *test;
 
-struct timeval start;
-struct timeval end;
+struct timeval start = (struct timeval){0};
+struct timeval end = (struct timeval){0};
 unsigned long timer;
 
 void *mmap_thread();
