@@ -20,6 +20,6 @@ Performance Testing
 
 
 ## Running CMD
-for size growing  ./test1 <Increase><Thread><Mode> 0:malloc 1:mmap 2:_malloc
+for size growing  ./test1 (Increase)(Thread)(Mode) 0:malloc 1:mmap 2:_malloc
 
-for random allocations ./test2 <Mode> 0:malloc 1:mmap 2:_malloc
+for random allocations ./test2 (Mode) 0:malloc 1:mmap 2:_malloc
