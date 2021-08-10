@@ -13,10 +13,6 @@ rm awscliv2.zip
 
 sudo apt-get install gcc
 
-git clone https://github.com/WayneWeng95/Swtich_Realloc.git
-
-cd Swtich_Realloc
-
 ./compile.sh
 
 base64 /dev/urandom | head -c 2147000000 > file.txt
