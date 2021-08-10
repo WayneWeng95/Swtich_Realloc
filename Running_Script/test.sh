@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 ./test $1 $2 0 &
 P1=$!
