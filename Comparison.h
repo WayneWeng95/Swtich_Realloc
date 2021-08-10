@@ -24,7 +24,7 @@ thread_local double total_time;
 thread_local char *n;
 int looping;
 char filePath[] = "file.txt";
-char sizePath[] = "rand7.txt";
+char sizePath[] = "randinput/rand6.txt";
 FILE *pFile;
 int fSize, testBuff;
 char *buffer;
