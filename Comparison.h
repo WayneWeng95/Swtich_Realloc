@@ -16,11 +16,19 @@
 
 #define INIT_SIZE 4096
 #define SWITCH_OFFSET 3*sizeof(int)
+#define DATA_HALF 1
+#define SLEEP_TIME 0
 
 thread_local clock_t t1, t2;
 thread_local double total_time;
-thread_local int *n;
-int looping;
+thread_local char *n;
+thread_local int looping;
+char filePath[] = "file.txt";
+char sizePath[] = "rand7.txt";
+FILE *pFile;
+int fSize, testBuff;
+char *buffer;
+char *test;
 
 struct timeval start;
 struct timeval end;
@@ -32,4 +40,4 @@ void *mmaprelease_thread();
 
 void *malloc_thread();
 
-void *switch_thread();
+void *_malloc_thread();

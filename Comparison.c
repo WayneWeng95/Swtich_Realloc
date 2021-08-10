@@ -4,30 +4,14 @@
 void *mmap_thread()
 {
     size_t size_of_mem = INIT_SIZE;
-    int fd = shm_open("/myregion2", O_CREAT | O_RDWR,
-                      S_IRWXO | S_IRUSR | S_IWUSR);
-    if (fd == -1)
-    {
-        perror("Error in shm_open");
-        return NULL;
-    }
+    int fd = __create_fd(size_of_mem);
 
-    if (ftruncate(fd, size_of_mem) == -1)
-    {
-        perror("Error in ftruncate");
-        return NULL;
-    }
-
-    int *shm_address = mmap(NULL, size_of_mem,
-                            PROT_READ | PROT_WRITE | PROT_EXEC,
-                            MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
+    void *shm_address = mmap(NULL, size_of_mem, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
     if (shm_address == MAP_FAILED)
     {
         perror("Error mmapping the file");
         return NULL;
     }
-
-    shm_address[0] = 1024;
 
     /* Increase shard memory */
     size_t new_size_of_mem = 4096;
@@ -47,20 +31,15 @@ void *mmap_thread()
             perror("Error in ftruncate");
             return NULL;
         }
-        n = mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
+        shm_address = (char *)mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
         gettimeofday(&end, NULL);
-        // sleep(1);
-        n[new_size_of_mem / 8 - 100] = 1;
-        // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
-        if (n == (void *)-1)
+        memcpy(shm_address, buffer, new_size_of_mem / DATA_HALF);
+        sleep(SLEEP_TIME);
+        if (shm_address == (void *)-1)
         {
             perror("Error on mremap()");
             return NULL;
         }
-
-        shm_address = n;
-
-        size_of_mem = new_size_of_mem;
 
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
@@ -71,91 +50,90 @@ void *mmap_thread()
     return 0;
 }
 
-void *mmaprelease_thread(){
-        size_t size_of_mem = INIT_SIZE;
-    int fd = shm_open("/myregion2", O_CREAT | O_RDWR,
-                      S_IRWXO | S_IRUSR | S_IWUSR);
-    if (fd == -1)
-    {
-        perror("Error in shm_open");
-        return NULL;
-    }
+// void *mmaprelease_thread()
+// {
+//     size_t size_of_mem = INIT_SIZE;
+//     int fd = shm_open("/myregion2", O_CREAT | O_RDWR,
+//                       S_IRWXO | S_IRUSR | S_IWUSR);
+//     if (fd == -1)
+//     {
+//         perror("Error in shm_open");
+//         return NULL;
+//     }
 
-    if (ftruncate(fd, size_of_mem) == -1)
-    {
-        perror("Error in ftruncate");
-        return NULL;
-    }
+//     if (ftruncate(fd, size_of_mem) == -1)
+//     {
+//         perror("Error in ftruncate");
+//         return NULL;
+//     }
 
-    int *shm_address = mmap(NULL, size_of_mem,
-                            PROT_READ | PROT_WRITE | PROT_EXEC,
-                            MAP_SHARED, fd, 0);
-    if (shm_address == MAP_FAILED)
-    {
-        perror("Error mmapping the file");
-        return NULL;
-    }
+//     int *shm_address = mmap(NULL, size_of_mem,
+//                             PROT_READ | PROT_WRITE | PROT_EXEC,
+//                             MAP_SHARED, fd, 0);
+//     if (shm_address == MAP_FAILED)
+//     {
+//         perror("Error mmapping the file");
+//         return NULL;
+//     }
 
-    shm_address[0] = 1024;
+//     shm_address[0] = 1024;
 
-    /* Increase shard memory */
-    size_t new_size_of_mem = INIT_SIZE;
-    for (size_t i = 0; i < looping; ++i)
-    {
+//     /* Increase shard memory */
+//     size_t new_size_of_mem = INIT_SIZE;
+//     for (size_t i = 0; i < looping; ++i)
+//     {
 
-        /* Does 8 align memory page? */
-        new_size_of_mem = new_size_of_mem * 2;
+//         /* Does 8 align memory page? */
+//         new_size_of_mem = new_size_of_mem * 2;
 
-        gettimeofday(&start, NULL);
-        if (ftruncate(fd, new_size_of_mem) == -1)
-        {
-            perror("Error in ftruncate");
-            return NULL;
-        }
-        n = mmap(NULL, new_size_of_mem,
-                            PROT_READ | PROT_WRITE | PROT_EXEC,
-                            MAP_SHARED, fd, 0);
-        memcpy(n,shm_address,new_size_of_mem/2);
-        //munmap(n,new_size_of_mem/2);
-        //n = mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
-        gettimeofday(&end, NULL);
-        shm_address = n;
-        // sleep(1);
-        n[new_size_of_mem / 8 - 100] = 1;
-        // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
-        if (n == (void *)-1)
-        {
-            perror("Error on mremap()");
-            return NULL;
-        }
+//         gettimeofday(&start, NULL);
+//         if (ftruncate(fd, new_size_of_mem) == -1)
+//         {
+//             perror("Error in ftruncate");
+//             return NULL;
+//         }
+//         n = mmap(NULL, new_size_of_mem,
+//                  PROT_READ | PROT_WRITE | PROT_EXEC,
+//                  MAP_SHARED, fd, 0);
+//         memcpy(n, shm_address, new_size_of_mem / 2);
+//         //munmap(n,new_size_of_mem/2);
+//         //n = mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
+//         gettimeofday(&end, NULL);
+//         shm_address = n;
+//         // sleep(1);
+//         n[new_size_of_mem / 8 - 100] = 1;
+//         // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
+//         if (n == (void *)-1)
+//         {
+//             perror("Error on mremap()");
+//             return NULL;
+//         }
 
-        //shm_address = n;
+//         //shm_address = n;
 
-        size_of_mem = new_size_of_mem;
+//         size_of_mem = new_size_of_mem;
 
-        total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    }
-    pid_t tid = gettid();
-    printf("MM release : %d,%.0lf\n", tid, total_time);
-    munmap(shm_address, new_size_of_mem);
+//         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+//     }
+//     pid_t tid = gettid();
+//     printf("MM release : %d,%.0lf\n", tid, total_time);
+//     munmap(shm_address, new_size_of_mem);
 
-    return 0;
-}
+//     return 0;
+// }
 
 void *malloc_thread()
 {
 
     n = NULL;
 
-    n = malloc(PAGE_SIZE);
+    n = (char *)malloc(PAGE_SIZE);
 
     if (n == NULL)
     {
         printf("Error in malloc!");
         return NULL;
     }
-
-    n[0] = 1024;
 
     size_t new_size_of_mem = INIT_SIZE;
 
@@ -165,8 +143,8 @@ void *malloc_thread()
         gettimeofday(&start, NULL);
         n = realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        n[new_size_of_mem / 8 - 100] = 1;
-        // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
+        memcpy(n, buffer, new_size_of_mem / DATA_HALF);
+        sleep(SLEEP_TIME);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
 
@@ -179,7 +157,7 @@ void *malloc_thread()
     return 0;
 }
 
-void *hybrid_thread() //This is a thread for simulating the function
+void *_malloc_thread() //This is a thread for simulating the function
 {
     n = _malloc(PAGE_SIZE);
 
@@ -189,19 +167,16 @@ void *hybrid_thread() //This is a thread for simulating the function
         return NULL;
     }
 
-    n[0] = 1024;
-
-    size_t new_size_of_mem = INIT_SIZE-SWITCH_OFFSET;
+    size_t new_size_of_mem = INIT_SIZE - SWITCH_OFFSET;
 
     for (int i = 0; i < looping; ++i)
     {
         new_size_of_mem = new_size_of_mem * 2;
         gettimeofday(&start, NULL);
-        n = (int *)_realloc(n, new_size_of_mem);
+        n = (char *)_realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        // sleep(1);
-        n[new_size_of_mem / 8 - 100] = new_size_of_mem / 8 - 100;
-        // printf("the data inside is %d\n", n[new_size_of_mem / 8 - 100]);
+        memcpy(n, buffer, new_size_of_mem / DATA_HALF);
+        sleep(SLEEP_TIME);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
 

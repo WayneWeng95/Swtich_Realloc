@@ -14,6 +14,13 @@ int main(int argc, char *argv[]) //4GB
     char *third_para = argv[3];
     int mode_selection = atoi(third_para);
 
+    pFile = fopen(filePath, "r");
+    fseek(pFile, 0, SEEK_END);
+    fSize = ftell(pFile);
+    rewind(pFile);
+    buffer = (char *)malloc(sizeof(char) * fSize);
+    testBuff = fread(buffer, 1, fSize, pFile);
+
     sleep(3);
 
     for (int i = 0; i < thread_counter; i++)
@@ -33,7 +40,7 @@ int main(int argc, char *argv[]) //4GB
         }
         else if (mode_selection == 2)
         {
-            pthread_create(&tid, NULL, hybrid_thread, NULL); //mode 2 for hybird
+            pthread_create(&tid, NULL, _malloc_thread, NULL); //mode 2 for hybird
         }
         else
         {

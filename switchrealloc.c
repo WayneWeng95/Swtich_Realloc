@@ -6,7 +6,6 @@
 #define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
 #define HUGE_PAGE_ALIGN(addr) ALIGN(addr, HUGE_PAGE_SIZE)
 
-
 void *_malloc(size_t size)
 { //In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
 
@@ -68,14 +67,14 @@ void *_realloc(void *ptr, size_t size)
 
     if (old_len > new_len)
     {
-    #if ENABLE_UNSHRINK_NOW
-            if (plen[1] >= UNSHRINK_THRESHOULD)
-            {
-                plen[2] = size;
-                return (void *)(&plen[3]);
-            }
-    #endif
-        plen[1]-=SHRINKING_LEVEL;
+#if ENABLE_UNSHRINK_NOW
+        if (plen[1] >= UNSHRINK_THRESHOULD)
+        {
+            plen[2] = size;
+            return (void *)(&plen[3]);
+        }
+#endif
+        plen[1] -= SHRINKING_LEVEL;
     }
     else
     {
@@ -134,7 +133,8 @@ void *_realloc(void *ptr, size_t size)
         int *temp = (int *)realloc(plen, new_len + 1); //this seems better to use sbrk()
         temp[2] = size;                                //incrementing this part
 #if MMAP_IN_SMALLSIZE
-        if(temp != plen){
+        if (temp != plen)
+        {
             temp[1] += SMALL_SIZE_INCREASE;
         }
 #endif

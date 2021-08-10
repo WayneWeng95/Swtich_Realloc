@@ -1,21 +1,16 @@
 #include "switchrealloc.c"
-#include "Comparison.h"
 
-#define INIT 1024
-#define RANDNO 500
-
-FILE *pFile;
-int fSize, testBuff;
-char *buffer;
-char *test;
-//char filePath[] = "/home/weikangweng/Documents/Thesis/Comparision/data/file.txt"; //change while deploy
-//char sizePath[] = "rand7.txt";
-int integers[sizeof(int) * RANDNO];
+#define RANDNO 1000
 
 void *malloc_rand(int *p)
 {
-    char *n;
-    n = (char *)malloc(INIT_SIZE);
+    double total_time = 0;
+    int *n;
+
+    struct timeval start;
+    struct timeval end;
+
+    n = malloc(128);
 
     if (n == NULL)
     {
@@ -23,13 +18,14 @@ void *malloc_rand(int *p)
         return NULL;
     }
 
+    size_t new_size_of_mem = 128;
+
     for (int i = 0; i < RANDNO; ++i)
     {
-        size_t new_size_of_mem = p[i];
+        new_size_of_mem = p[i];
         gettimeofday(&start, NULL);
         n = realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        memcpy(n, buffer, new_size_of_mem);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
 
@@ -43,12 +39,29 @@ void *malloc_rand(int *p)
 void *mmap_rand(int *p)
 {
 
-    //void *n=NULL;
+    double total_time = 0;
+    int *n = NULL;
 
-    int init_size = p[0];
-    int fd = __create_fd(init_size);
+    struct timeval start;
+    struct timeval end;
+    int init_size = 128;
+    int fd = shm_open("/myregion2", O_CREAT | O_RDWR,
+                      S_IRWXO | S_IRUSR | S_IWUSR);
+    if (fd == -1)
+    {
+        perror("Error in shm_open");
+        return NULL;
+    }
 
-    void *shm_address = mmap(NULL, init_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
+    if (ftruncate(fd, init_size) == -1)
+    {
+        perror("Error in ftruncate");
+        return NULL;
+    }
+
+    int *shm_address = mmap(NULL, init_size,
+                            PROT_READ | PROT_WRITE | PROT_EXEC,
+                            MAP_SHARED, fd, 0);
     if (shm_address == MAP_FAILED)
     {
         perror("Error mmapping the file");
@@ -60,7 +73,7 @@ void *mmap_rand(int *p)
     {
 
         /* Does 8 align memory page? */
-        int new_size_of_mem = p[i]; //possible problem point
+        int new_size_of_mem = p[i];
         int old_size_of_men = p[i - 1];
 
         /*
@@ -73,17 +86,15 @@ void *mmap_rand(int *p)
             perror("Error in ftruncate");
             return NULL;
         }
-        shm_address = (char *)mremap(shm_address, old_size_of_men, new_size_of_mem, MREMAP_MAYMOVE);
+        shm_address = mremap(shm_address, old_size_of_men, new_size_of_mem, MREMAP_MAYMOVE);
         gettimeofday(&end, NULL);
-        if (shm_address == (void *)-1)
+        if (n == (void *)-1)
         {
             perror("Error on mremap()");
             return NULL;
         }
-        //printf("%ld\n",i);
-        memcpy(shm_address, buffer, new_size_of_mem);
 
-        //shm_address = n;
+        shm_address = n;
 
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
@@ -95,9 +106,14 @@ void *mmap_rand(int *p)
 
 void *_malloc_rand(int *p)
 {
-    char *n;
 
-    n = _malloc(INIT_SIZE);
+    double total_time = 0;
+    int *n;
+
+    struct timeval start;
+    struct timeval end;
+
+    n = _malloc(128);
 
     if (n == NULL)
     {
@@ -109,10 +125,8 @@ void *_malloc_rand(int *p)
     {
         size_t new_size_of_mem = p[i];
         gettimeofday(&start, NULL);
-        n = (char *)_realloc(n, new_size_of_mem);
+        n = (int *)_realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        memcpy(n, buffer, new_size_of_mem);
-        //sleep(1);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
 
@@ -125,8 +139,8 @@ void *_malloc_rand(int *p)
 
 int main()
 {
-
-    FILE *file = fopen(sizePath, "r");
+    FILE *file = fopen("rand3.txt", "r");
+    int integers[sizeof(int) * RANDNO];
 
     int i = 0;
     int num;
@@ -138,20 +152,11 @@ int main()
     }
     fclose(file);
 
-    pFile = fopen(filePath, "r");
-    fseek(pFile, 0, SEEK_END);
-    fSize = ftell(pFile);
-    rewind(pFile);
-    buffer = (char *)malloc(sizeof(char) * fSize);
-    testBuff = fread(buffer, 1, fSize, pFile);
+    malloc_rand(integers);
+    sleep(2);
+    mmap_rand(integers);
+    sleep(2);
+    _malloc_rand(integers);
 
-    if (testBuff == fSize)
-    {
-        //malloc_rand(integers);
-        mmap_rand(integers);
-        //_malloc_rand(integers);
-    }
-    fclose(pFile);
-    free(buffer);
-    //free(test);
+    return 0;
 }

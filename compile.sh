@@ -1,7 +1,5 @@
-#!/bin/bash
+#!/bin/zsh
 
-gcc main.c -g -o test -lrt -pthread -Wall
+gcc main.c -g -o test1 -lrt -pthread -Wall
 
-gcc randmain.c -g -o randtest -lrt -pthread -Wall
-
-gcc tempmain.c -g -o temptest -lrt -pthread -Wall
+gcc fileload.c -g -o test2 -lrt -pthread -Wall
