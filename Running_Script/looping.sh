@@ -15,7 +15,9 @@ echo "iteration $i"
 
 ./../test $2 $3 $4 >> $2.txt  #for data size with same method
 
-#./randtest >> $2.txt # for random test
+# ./test2 $2 >> $2.txt
+
+# ./cleaning.sh
 
 sleep 10s
 
