@@ -13,11 +13,11 @@ echo "iteration $i"
 
 #./test $2 $3 $4 >> $5.txt # for switch point testing
 
-./../test $2 $3 $4 >> $2.txt  #for data size with same method
+#./../test $2 $3 $4 >> $2.txt  #for data size with same method
 
-# ./test2 $2 >> $2.txt
+./../test2 $2 >> $2.txt
 
-# ./cleaning.sh
+./cleaning.sh
 
 sleep 10s
 
