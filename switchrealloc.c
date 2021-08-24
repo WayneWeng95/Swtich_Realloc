@@ -21,7 +21,7 @@ void *_malloc(size_t size)
         if (temp)
         {
             temp[0] = -1;   //fd
-            temp[1] = 0;    //count
+            temp[1] = 0;    //counter
             temp[2] = size; //size
             return (void *)(&temp[3]);
         }
@@ -47,7 +47,7 @@ void *_malloc(size_t size)
         else
         {
             temp[0] = fd;   //fd
-            temp[1] = 0;    //count
+            temp[1] = 0;    //counter
             temp[2] = size; //size
             return (void *)(&temp[3]);
         }
@@ -208,7 +208,7 @@ void *_calloc(size_t nitems, size_t size) //Further look
         if (temp)
         {
             temp[0] = -1;            //fd
-            temp[1] = 0;             //count
+            temp[1] = 0;             //counter
             temp[2] = nitems * size; //size
             return (void *)(&temp[3]);
         }
