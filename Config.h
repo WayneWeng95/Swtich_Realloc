@@ -1,5 +1,5 @@
-#define ENABLE_PREDICTION 1
-#define ENABLE_UNSHRINK_NOW 1 //need enable prediction first
+#define ENABLE_PREDICTION 0
+#define ENABLE_UNSHRINK_NOW 0 //need enable prediction first
 #define MMAP_IN_SMALLSIZE 0
 #define ENABLE_HUGLETLB 0 //need additional checking before enable this
 
