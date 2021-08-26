@@ -2,7 +2,13 @@
 #include "Comparison.h"
 
 #define INIT 1024
-#define RANDNO 500
+#define RANDNO 300      //500 for nonstep test
+
+#define __ALIGN_KERNEL(x, a) __ALIGN_KERNEL_MASK(x, (typeof(x))(a)-1)
+#define __ALIGN_KERNEL_MASK(x, mask) (((x) + (mask)) & ~(mask))
+#define ALIGN(x, a) __ALIGN_KERNEL((x), (a))
+#define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
+#define HUGE_PAGE_ALIGN(addr) ALIGN(addr, HUGE_PAGE_SIZE)
 
 FILE *pFile;
 int fSize, testBuff;
@@ -15,6 +21,7 @@ int integers[sizeof(int) * RANDNO];
 void *malloc_rand(int *p)
 {
     char *n;
+    total_time = 0;
     n = (char *)malloc(INIT_SIZE);
 
     if (n == NULL)
@@ -44,7 +51,7 @@ void *mmap_rand(int *p)
 {
 
     //void *n=NULL;
-
+    total_time = 0;
     int init_size = p[0];
     int fd = __create_fd(init_size);
 
@@ -96,6 +103,7 @@ void *mmap_rand(int *p)
 void *_malloc_rand(int *p)
 {
     char *n;
+    total_time = 0;
 
     n = _malloc(INIT_SIZE);
 
@@ -132,6 +140,7 @@ int main(int argc, char *argv[])
 
     char *first_para = argv[1];
     mode = atoi(first_para);
+    //mode = 2;
 
     int i = 0;
     int num;

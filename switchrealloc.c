@@ -85,7 +85,6 @@ void *_realloc(void *ptr, size_t size)
 
     if (new_len <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE)
     {
-#if MMAP_IN_SMALLSIZE
         if (plen[0] != -1)
         {
             new_len = PAGE_ALIGN(new_len);
@@ -104,6 +103,7 @@ void *_realloc(void *ptr, size_t size)
             temp[2] = size;
             return (void *)(&temp[3]);
         }
+#if MMAP_IN_SMALLSIZE
         else if (plen[1] >= MALLOC_HOTLEVEL && plen[2] >= MAPPING_POINT)
         {
             new_len = PAGE_ALIGN(new_len);
