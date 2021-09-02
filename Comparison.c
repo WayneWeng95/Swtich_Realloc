@@ -33,7 +33,7 @@ void *mmap_thread()
         }
         shm_address = (char *)mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
         gettimeofday(&end, NULL);
-        memcpy(shm_address, buffer, new_size_of_mem / DATA_HALF);
+        memcpy(shm_address, buffer, new_size_of_mem);
         sleep(SLEEP_TIME);
         if (shm_address == (void *)-1)
         {
@@ -143,7 +143,7 @@ void *malloc_thread()
         gettimeofday(&start, NULL);
         n = realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        memcpy(n, buffer, new_size_of_mem / DATA_HALF);
+        memcpy(n, buffer, new_size_of_mem);
         sleep(SLEEP_TIME);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }
@@ -175,7 +175,7 @@ void *_malloc_thread() //This is a thread for simulating the function
         gettimeofday(&start, NULL);
         n = (char *)_realloc(n, new_size_of_mem);
         gettimeofday(&end, NULL);
-        memcpy(n, buffer, new_size_of_mem / DATA_HALF);
+        memcpy(n, buffer, new_size_of_mem);
         sleep(SLEEP_TIME);
         total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     }

@@ -16,15 +16,16 @@
 
 #define INIT_SIZE 4096
 #define SWITCH_OFFSET 3 * sizeof(int)
-#define DATA_HALF 1
 #define SLEEP_TIME 0
+
+#define RANDNO 500      //500 for nonstep test
 
 thread_local clock_t t1, t2;
 thread_local double total_time;
 thread_local char *n;
 int looping;
 char filePath[] = "file.txt";
-char sizePath[] = "randinput/step1.txt";
+char sizePath[] = "step1.txt";
 FILE *pFile;
 int fSize, testBuff;
 char *buffer;

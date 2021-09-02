@@ -1,9 +1,6 @@
 #include "switchrealloc.c"
 #include "Comparison.h"
 
-#define INIT 1024
-#define RANDNO 300      //500 for nonstep test
-
 #define __ALIGN_KERNEL(x, a) __ALIGN_KERNEL_MASK(x, (typeof(x))(a)-1)
 #define __ALIGN_KERNEL_MASK(x, mask) (((x) + (mask)) & ~(mask))
 #define ALIGN(x, a) __ALIGN_KERNEL((x), (a))

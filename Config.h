@@ -1,22 +1,21 @@
-#define ENABLE_PREDICTION 0
+#define ENABLE_PREDICTION 1
 #define ENABLE_UNSHRINK_NOW 0 //need enable prediction first
-#define MMAP_IN_SMALLSIZE 0
-#define ENABLE_HUGLETLB 0 //need additional checking before enable this
+#define MMAP_IN_SMALLSIZE 1
+#define ENABLE_X2_ENHANCEMENT 1
+#define ENABLE_HUGLETLB 1 //need additional checking before enable this
 
+#define AGGRESIVE 0
 #define MAPPING_POINT 16
-#define MALLOC_HOTLEVEL 40
+#define SWITCH_POINT 128
 
-#define HUGE_TLB_POINT 1024 * 1024
+#define MALLOC_HOTLEVEL 40
 #define MMAP_HOTLEVEL 20
+#define HUGE_TLB_POINT 10
 
 #define SHRINKING_LEVEL 2
 #define UNSHRINK_THRESHOULD 7
-#define AGGRESIVE 0
 
-// #define MAPPING_POINT 16
-#define SWITCH_POINT 128
-#define SMALL_SIZE_INCREASE 10
-// #define HUGE_TLB_POINT 1024*1024
+#define SMALL_SIZE_COPY_INCREASE 10
 
 #define HUGE_PAGE_SIZE 2 * 1024 * 1024 //2048KB as system default
 

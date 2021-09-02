@@ -65,6 +65,12 @@ void *_realloc(void *ptr, size_t size)
 
 #if ENABLE_PREDICTION
 
+#if ENABLE_X2_ENHANCEMENT
+    if(size == plen[2]*2){
+        plen[1] += MMAP_HOTLEVEL/2;
+    }
+#endif
+
     if (old_len > new_len)
     {
 #if ENABLE_UNSHRINK_NOW
@@ -130,12 +136,12 @@ void *_realloc(void *ptr, size_t size)
             return (void *)(&temp[3]);
         }
 #endif
-        int *temp = (int *)realloc(plen, new_len + 1); //this seems better to use sbrk()
-        temp[2] = size;                                //incrementing this part
+        int *temp = (int *)realloc(plen, new_len + 1); 
+        temp[2] = size;                               
 #if MMAP_IN_SMALLSIZE
         if (temp != plen)
         {
-            temp[1] += SMALL_SIZE_INCREASE;
+            temp[1] += SMALL_SIZE_COPY_INCREASE;
         }
 #endif
         return (void *)(&temp[3]);
