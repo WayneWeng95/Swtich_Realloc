@@ -2,7 +2,7 @@
 #define ENABLE_UNSHRINK_NOW 0 //need enable prediction first
 #define MMAP_IN_SMALLSIZE 1
 #define ENABLE_X2_ENHANCEMENT 0
-#define ENABLE_HUGLETLB 0 //need additional checking before enable this
+#define ENABLE_HUGLETLB 1 //need additional checking before enable this
 
 #define AGGRESIVE 0
 #define MAPPING_POINT 16
