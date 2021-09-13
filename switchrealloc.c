@@ -217,6 +217,11 @@ void *_calloc(size_t nitems, size_t size) //Further look
         temp[2] = nitems * size; //size
         return (void *)(&temp[3]);
     }
+    else
+    {
+        perror("Error in calloc");
+        return NULL;
+    }
 }
 
 void _free(void *ptr)
