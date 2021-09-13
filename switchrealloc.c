@@ -66,8 +66,9 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_PREDICTION
 
 #if ENABLE_X2_ENHANCEMENT
-    if(size == plen[2]*2){
-        plen[1] += MMAP_HOTLEVEL/2;
+    if (size == plen[2] * 2)
+    {
+        plen[1] += MMAP_HOTLEVEL / 2;
     }
 #endif
 
@@ -136,8 +137,8 @@ void *_realloc(void *ptr, size_t size)
             return (void *)(&temp[3]);
         }
 #endif
-        int *temp = (int *)realloc(plen, new_len + 1); 
-        temp[2] = size;                               
+        int *temp = (int *)realloc(plen, new_len + 1);
+        temp[2] = size;
 #if MMAP_IN_SMALLSIZE
         if (temp != plen)
         {
@@ -208,25 +209,13 @@ void *_calloc(size_t nitems, size_t size) //Further look
     int *temp;
     // int fd = -1;
 
-    if (size <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE)
+    temp = (int *)calloc(len + 1, size);
+    if (temp)
     {
-        temp = (int *)calloc(len + 1, size);
-        if (temp)
-        {
-            temp[0] = -1;            //fd
-            temp[1] = 0;             //counter
-            temp[2] = nitems * size; //size
-            return (void *)(&temp[3]);
-        }
-        else
-        {
-            perror("Error in calloc");
-            return NULL;
-        }
-    }
-    else
-    {
-        return _malloc(nitems * size);
+        temp[0] = -1;            //fd
+        temp[1] = 0;             //counter
+        temp[2] = nitems * size; //size
+        return (void *)(&temp[3]);
     }
 }
 
