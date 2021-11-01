@@ -19,9 +19,8 @@ void *_malloc(size_t size)
     {
         size_t len = size + SMALL_OFFSET;
         temp = (int *)malloc(len + 1);
-        temp[0] = 0;
-        temp[1] = size;
-        return (void *)(&temp[2]);
+        temp[0] = -size;
+        return (void *)(&temp[1]);
     }
 
 #endif
@@ -76,22 +75,25 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_SIZESAVE
 
     int *pl = (int *)ptr;
-    pl = pl - 2;
-    size_t old_len = pl[1] + OFFSET;
+    pl = pl - 1;
+    size_t save_old_len = -pl[0] + OFFSET;
 
-    if (pl == 0 && old_len <= KB * SWITCH_POINT)
+    if (save_old_len >= 0)
     {
-        size_t new_len = size + SMALL_OFFSET;
-        int *temp = (int *)realloc(pl, new_len + 1);
-        return (void *)(&temp[2]);
-    }
-    else
-    {
-        size_t old_len = pl[1] + OFFSET;
-        int *temp = _malloc(size);
-        pl = pl + 2;
-        memcpy(temp, pl, old_len);
-        return temp;
+        if (pl == 0 && old_len <= KB * SWITCH_POINT)
+        {
+            size_t new_len = size + SMALL_OFFSET;
+            int *temp = (int *)realloc(pl, new_len + 1);
+            return (void *)(&temp[1]);
+        }
+        else
+        {
+            size_t old_len = pl[1] + OFFSET;
+            int *temp = _malloc(size);
+            pl = pl + 1;
+            memcpy(temp, pl, old_len);
+            return temp;
+        }
     }
 
 #endif
