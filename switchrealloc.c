@@ -5,24 +5,39 @@
 #define ALIGN(x, a) __ALIGN_KERNEL((x), (a))
 #define PAGE_ALIGN(addr) ALIGN(addr, PAGE_SIZE)
 #define HUGE_PAGE_ALIGN(addr) ALIGN(addr, HUGE_PAGE_SIZE)
+#define MID_PAGE_ALIGN(addr) ALIGN(addr, MID_PAGE_SIZE)
+#define X2_ALIGN(addr) ALIGN(addr, X2_EH_SIZE)
 
 void *_malloc(size_t size)
-{ //In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
+{ // In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
 
-    size_t len = size + OFFSET; //two addition int block is needed
-    //int count = 0;                        //for copy prediction
-    //int fd = -1;                          //for file_descriptor, which helps judge the mmap and malloc
     int *temp;
+
+#if ENABLE_SIZESAVE
+
+    if (size <= MAPPING_POINT * KB)
+    {
+        size_t len = size + OFFSET;
+        temp = (int *)malloc(len + 1);
+        temp[0] = 0;
+        return (void *)(&temp[1]);
+    }
+
+#endif
+
+    size_t len = size + OFFSET; // two addition int block is needed
+    // int count = 0;                        //for copy prediction
+    // int fd = -1;                          //for file_descriptor, which helps judge the mmap and malloc
 
     if (len <= KB * SWITCH_POINT - AGGRESIVE * PAGE_SIZE)
     {
         temp = (int *)malloc(len + 1);
-        //fprintf(stdout, "Malloc branch\n");
+        // fprintf(stdout, "Malloc branch\n");
         if (temp)
         {
-            temp[0] = -1;   //fd
-            temp[1] = 0;    //counter
-            temp[2] = size; //size
+            temp[0] = -1;   // fd
+            temp[1] = 0;    // counter
+            temp[2] = size; // size
             return (void *)(&temp[3]);
         }
         else
@@ -38,7 +53,7 @@ void *_malloc(size_t size)
         fd = __create_fd(len);
 
         temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
-        //fprintf(stdout, "Mmap branch\n");
+        // fprintf(stdout, "Mmap branch\n");
         if (temp == MAP_FAILED)
         {
             perror("Error in mmap\n");
@@ -46,18 +61,40 @@ void *_malloc(size_t size)
         }
         else
         {
-            temp[0] = fd;   //fd
-            temp[1] = 0;    //counter
-            temp[2] = size; //size
+            temp[0] = fd;   // fd
+            temp[1] = 0;    // counter
+            temp[2] = size; // size
             return (void *)(&temp[3]);
         }
     }
 }
 
 void *_realloc(void *ptr, size_t size)
-{ //once realloc need to allocate space larger than 256Kb it switch from realloc to mremap
+{ // once realloc need to allocate space larger than 256Kb it switch from realloc to mremap
+
+#if ENABLE_SIZESAVE
+
+    int *pl = (int *)ptr;
+    pl = pl - 1;
+
+    if (pl == 0)
+    {
+        size_t new_len = size + SMALL_OFFSET;
+        int *temp = (int *)realloc(pl, new_len + 1);
+        return (void *)(&temp[1]);
+    }
+    else
+    {
+        int *temp = _malloc(size);
+        memcpy(temp, ptr, MAPPING_POINT * KB);
+        return (void *)temp;
+    }
+    pl = pl + 1;
+
+#endif
+
     int *plen = (int *)ptr;
-    plen = plen - 3; //move to head;
+    plen = plen - 3; // move to head;
 
     int fd = plen[0];
     size_t old_len = plen[2] + OFFSET;
@@ -68,7 +105,8 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_X2_ENHANCEMENT
     if (size == plen[2] * 2)
     {
-        plen[1] += MMAP_HOTLEVEL / 2;
+        plen[1] += MMAP_HOTLEVEL / 3;
+        new_len = X2_ALIGN(new_len);
     }
 #endif
 
@@ -77,7 +115,7 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_UNSHRINK_NOW
         if (plen[1] >= UNSHRINK_THRESHOULD)
         {
-            plen[2] = size;
+            // plen[2] = size;
             return (void *)(&plen[3]);
         }
 #endif
@@ -104,8 +142,8 @@ void *_realloc(void *ptr, size_t size)
 
             temp = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
 
-            //This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
-            // This leaves the existing mapping in place after moving the page table entries.
+            // This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
+            //  This leaves the existing mapping in place after moving the page table entries.
             temp[0] = fd;
             temp[2] = size;
             return (void *)(&temp[3]);
@@ -120,8 +158,8 @@ void *_realloc(void *ptr, size_t size)
             {
                 return NULL;
             }
-            //this indicates its a result from malloc
-            temp = (int *)mmap(NULL, new_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0); //MAP_PRIVATE | MAP_ANONYMOUS
+            // this indicates its a result from malloc
+            temp = (int *)mmap(NULL, new_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0); // MAP_PRIVATE | MAP_ANONYMOUS
 
             if (temp == MAP_FAILED)
             {
@@ -151,14 +189,14 @@ void *_realloc(void *ptr, size_t size)
     {
         new_len = PAGE_ALIGN(new_len);
         int *temp;
-        if (fd == -1) //current in first block
+        if (fd == -1) // current in first block
         {
             int fd = __create_fd(new_len);
 
-            //this indicates its a result from malloc
-            temp = (int *)mmap(NULL, new_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0); //MAP_PRIVATE | MAP_ANONYMOUS
+            // this indicates its a result from malloc
+            temp = (int *)mmap(NULL, new_len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0); // MAP_PRIVATE | MAP_ANONYMOUS
 
-            //fprintf(stderr, "Switching\n");
+            // fprintf(stderr, "Switching\n");
 
             if (temp == MAP_FAILED)
             {
@@ -190,10 +228,10 @@ void *_realloc(void *ptr, size_t size)
 
             plen = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
 
-            //fprintf(stderr, "remap\n");
+            // fprintf(stderr, "remap\n");
 
-            //This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
-            // This leaves the existing mapping in place after moving the page table entries.
+            // This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
+            //  This leaves the existing mapping in place after moving the page table entries.
             plen[0] = fd;
             plen[2] = size;
             return (void *)(&plen[3]);
@@ -201,10 +239,10 @@ void *_realloc(void *ptr, size_t size)
     }
 }
 
-void *_calloc(size_t nitems, size_t size) //Further look
+void *_calloc(size_t nitems, size_t size) // Further look
 {
     size_t len = nitems * size + sizeof(size) * 3;
-    //int count = 0;
+    // int count = 0;
 
     int *temp;
     // int fd = -1;
@@ -212,10 +250,15 @@ void *_calloc(size_t nitems, size_t size) //Further look
     temp = (int *)calloc(len + 1, size);
     if (temp)
     {
-        temp[0] = -1;            //fd
-        temp[1] = 0;             //counter
-        temp[2] = nitems * size; //size
+        temp[0] = -1;            // fd
+        temp[1] = 0;             // counter
+        temp[2] = nitems * size; // size
         return (void *)(&temp[3]);
+    }
+    else
+    {
+        perror("Error in calloc");
+        return NULL;
     }
 }
 
@@ -226,17 +269,17 @@ void _free(void *ptr)
 
     if (plen[0] == -1)
     {
-        //fprintf(stdout, "Malloc branch\n");
+        // fprintf(stdout, "Malloc branch\n");
         free(plen);
     }
     else
     {
-        //fprintf(stdout, "Mmap branch\n");
+        // fprintf(stdout, "Mmap branch\n");
         munmap((void *)plen, plen[2]);
     }
 }
 
-int *__assign_header(int *ptr, int fd, int count, int size)
+int *__assign_header(int *ptr, int count, int size)
 {
     ptr[0] = -1;
     ptr[1] = count;
@@ -251,7 +294,7 @@ size_t grab_length(void *ptr)
 
     plen--;
     len = *plen;
-    //printf("len in function is:%ld\n", len);
+    // printf("len in function is:%ld\n", len);
     return len;
 }
 
@@ -273,7 +316,7 @@ int __create_fd(int size)
 {
 
     int fd = shm_open("/myregion", O_CREAT | O_RDWR,
-                      S_IRWXO | S_IRUSR | S_IWUSR); //permision specified
+                      S_IRWXO | S_IRUSR | S_IWUSR); // permision specified
     if (fd == -1)
     {
         perror("Error in shm_open");
@@ -299,7 +342,7 @@ int __create_fd_share(int size)
     sprintf(tid_string, "%d", tid);
 
     int fd = shm_open(strcat(root, tid_string), O_CREAT | O_RDWR,
-                      S_IRWXO | S_IRUSR | S_IWUSR); //permision specified
+                      S_IRWXO | S_IRUSR | S_IWUSR); // permision specified
     if (fd == -1)
     {
         perror("Error in shm_open");
@@ -328,7 +371,7 @@ void *_malloc_share(size_t size)
         return NULL;
     }
 
-    temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0); //a shared object version
+    temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, fd, 0); // a shared object version
     if (temp == MAP_FAILED)
     {
         perror("Error in mmap\n");
@@ -336,7 +379,7 @@ void *_malloc_share(size_t size)
     }
     else
     {
-        temp = __assign_header(temp, fd, count, size);
+        temp = __assign_header(temp, count, size);
         return (void *)(&temp[3]);
     }
 }
@@ -364,7 +407,7 @@ void *_realloc_share(void *ptr, size_t size)
 
     int *temp = (int *)mremap(plen, old_len, new_len, MREMAP_MAYMOVE);
 
-    temp = __assign_header(temp, fd, count++, size);
+    temp = __assign_header(temp, count++, size);
 
     free(plen);
     return (void *)(&temp[3]);
