@@ -1,6 +1,9 @@
 #define _GNU_SOURCE 1
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <setjmp.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -14,6 +17,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <setjmp.h>
+
 
 #include "Config.h"
 
@@ -27,6 +32,8 @@
 #define OFFSET 24
 //#define PAGE_SIZE getpagesize()
 #define PAGE_SIZE 4096
+
+jmp_buf env;
 
 void *_malloc(size_t);
 

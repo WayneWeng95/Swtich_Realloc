@@ -8,12 +8,49 @@
 #define MID_PAGE_ALIGN(addr) ALIGN(addr, MID_PAGE_SIZE)
 #define X2_ALIGN(addr) ALIGN(addr, X2_EH_SIZE)
 
+void recvSignal(int sig)
+{
+    siglongjmp(env, 1);
+}
+
+size_t judge_the_malloc(int *p)
+{
+
+    int r = sigsetjmp(env, 1);
+    signal(SIGSEGV, recvSignal);
+    if (r == 0)
+    {
+        int *temp = p - 1;
+        if (temp[0] < 0)
+        {
+            return -temp[0];
+        }
+        else
+        {
+            return temp[0];
+        }
+        size_t now_size = malloc_usable_size(p);
+        return now_size;
+    }
+    else
+    {
+        size_t now_size = malloc_usable_size(p);
+        return now_size;
+    }
+}
+
 void *_malloc(size_t size)
 { // In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
 
     int *temp;
 
 #if ENABLE_SIZESAVE
+
+    // if(size <= HEADLESS * KB){
+    //     TRY{
+
+    //     }
+    // }
 
     if (size <= MAPPING_POINT * KB)
     {

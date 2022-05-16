@@ -1,11 +1,12 @@
 #define ENABLE_PREDICTION 1
 #define ENABLE_UNSHRINK_NOW 1 // need enable prediction first
-#define MMAP_IN_SMALLSIZE 1
+#define MMAP_IN_SMALLSIZE 0
 #define ENABLE_X2_ENHANCEMENT 1 // need enable prediction first
 #define ENABLE_HUGLETLB 1       // need additional checking before enable this
 #define ENABLE_SIZESAVE 0
 
 #define AGGRESIVE 0
+#define HEADLESS 4
 #define MAPPING_POINT 16
 #define SWITCH_POINT 128
 
