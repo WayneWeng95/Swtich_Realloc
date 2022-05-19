@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <math.h>
 #include <pthread.h>
 #include <threads.h>
 #include <malloc.h>
@@ -18,7 +19,6 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <setjmp.h>
-
 
 #include "Config.h"
 
@@ -49,8 +49,4 @@ void *__go_to_size(void *);
 
 void *__go_to_count(void *);
 
-void *__go_to_head(void *);
-
 int *__assign_header(int *, int, int);
-
-int __create_fd(int);
