@@ -1,8 +1,8 @@
-#define ENABLE_PREDICTION 1
-#define ENABLE_UNSHRINK_NOW 1 // need enable prediction first
+#define ENABLE_PREDICTION 0
+#define ENABLE_UNSHRINK_NOW 0 // need enable prediction first
 // #define MMAP_IN_SMALLSIZE 0
-#define ENABLE_X2_ENHANCEMENT 1 // need enable prediction first
-#define ENABLE_HUGLETLB 1       // need additional checking before enable this
+#define ENABLE_X2_ENHANCEMENT 0 // need enable prediction first
+#define ENABLE_HUGLETLB 0       // need additional checking before enable this
 
 #define HEADLESS 16384      // 16K
 #define MAPPING_POINT 16384 // 16K

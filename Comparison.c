@@ -1,10 +1,23 @@
 #include "Comparison.h"
-#include "switchrealloc.c"
+#include "switchrealloc.h"
 
 void *mmap_thread()
 {
     size_t size_of_mem = INIT_SIZE;
-    int fd = __create_fd(size_of_mem);
+
+    int fd = shm_open("/myregion", O_CREAT | O_RDWR,
+                      S_IRWXO | S_IRUSR | S_IWUSR); // permision specified
+    if (fd == -1)
+    {
+        perror("Error in shm_open");
+        return NULL;
+    }
+
+    if (ftruncate(fd, size_of_mem) == -1)
+    {
+        perror("Error in ftruncate");
+        return NULL;
+    }
 
     void *shm_address = mmap(NULL, size_of_mem, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
     if (shm_address == MAP_FAILED)
@@ -157,7 +170,7 @@ void *malloc_thread()
     return 0;
 }
 
-void *_malloc_thread() //This is a thread for simulating the function
+void *_malloc_thread() // This is a thread for simulating the function
 {
     n = _malloc(PAGE_SIZE);
 

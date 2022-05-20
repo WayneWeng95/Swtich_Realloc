@@ -21,7 +21,7 @@ static size_t check_size(void *p)
     int r = sigsetjmp(env, 1);
     if (r == 0)
     {
-        size_t now_size = malloc_usable_size(p);
+        size_t now_size = malloc_usable_size(p);        //seems influence to the performance
         // printf("size : %ld \n", now_size); // stopped here
         return now_size - SMALL_OFFSET;
     }
@@ -61,12 +61,12 @@ static int __create_fd(int size)
     return fd;
 }
 
-static void _internal_free(void *ptr)
-{
+// static void _internal_free(void *ptr)
+// {
 
-    int *plen = (int *)__go_to_head(ptr);
-    munmap((void *)plen, plen[2]);
-}
+//     int *plen = (int *)__go_to_head(ptr);
+//     munmap((void *)plen, plen[2]);
+// }
 
 void *_malloc(size_t size)
 { // In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
