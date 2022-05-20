@@ -1,4 +1,5 @@
 #include "switchrealloc.h"
+// #include <linux/gfp.h>
 
 #define __ALIGN_KERNEL(x, a) __ALIGN_KERNEL_MASK(x, (typeof(x))(a)-1)
 #define __ALIGN_KERNEL_MASK(x, mask) (((x) + (mask)) & ~(mask))
@@ -60,14 +61,6 @@ static int __create_fd(int size)
     return fd;
 }
 
-// static void _internal_free_medium(void *ptr)
-// {
-
-//     int *temp;
-//     temp = (int *)ptr - 1;
-//     free(temp);
-// }
-
 static void _internal_free(void *ptr)
 {
 
@@ -122,6 +115,13 @@ void *_realloc(void *ptr, size_t size)
     // printf("old_size is %ld \n", old_size);
     //   printf("new realloc size is %ld \n", size);
 
+#if ENABLE_X2_ENHANCEMENT
+    if (size - old_size * 2 == 0)
+    {
+        size = X2_ALIGN(size);
+    }
+#endif
+
     if (size <= 0)
     {
         perror("Wrong size\n");
@@ -173,10 +173,31 @@ void *_realloc(void *ptr, size_t size)
             new_size = PAGE_ALIGN(new_size);
 
 #if ENABLE_HUGLETLB
-            if (temp[1] >= MMAP_HOTLEVEL && temp[2] >= HUGE_TLB_POINT)
+            if (size >= HUGE_TLB_POINT) // && temp[1] >= MMAP_HOTLEVEL &&)
             {
-                new_size = HUGE_PAGE_ALIGN(new_size);
+                new_size = HUGE_PAGE_ALIGN(new_size + OFFSET);
             }
+#endif
+
+#if ENABLE_PREDICTION
+            if (size >= old_size)
+            {
+                temp[1] += 1;
+            }
+            else
+            {
+                temp[1] -= 1;
+                if (temp[1] < 1)
+                    temp[1] = 0;
+            }
+
+#if ENABLE_UNSHRINK_NOW
+            if (temp[1] >= UNSHRINK_THRESHOULD)
+            {
+                return (void *)(&temp[3]);
+            }
+#endif
+
 #endif
             if (ftruncate(fd, new_size) == -1)
             {
@@ -195,6 +216,8 @@ void *_realloc(void *ptr, size_t size)
     }
 
     return NULL;
+
+    // alloc_pages(GFP_KERNEL,2);
 
     //     size_t new_len = size + OFFSET;
 

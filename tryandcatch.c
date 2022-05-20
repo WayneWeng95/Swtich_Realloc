@@ -29,11 +29,11 @@ int main()
 
     int *i1_1 = (int *)_realloc(i1, 2048);
     int *i2_1 = (int *)_realloc(i2, 2048);
-    int *i3_1 = (int *)_realloc(i3, 2048);
+    int *i3_1 = (int *)_realloc(i3, 1024*1024*1024);
 
     i1_1[50] = 10;
     i2_1[50] = 11;
-    i3_1[50] = 12;
+    i3_1[50000] = 12;
 
     printf("i1[0]is: %d\n", i1_1[0]);
     printf("i2[0]is: %d\n", i2_1[0]);
@@ -41,7 +41,7 @@ int main()
 
     printf("i1[50]is: %d\n", i1_1[50]);
     printf("i2[50]is: %d\n", i2_1[50]);
-    printf("i3[50]is: %d\n", i3_1[50]);
+    printf("i3[50000]is: %d\n", i3_1[50000]);
 
     int *i1_2 = (int *)_realloc(i1_1, 8096);
     int *i2_2 = (int *)_realloc(i2_1, 8096);

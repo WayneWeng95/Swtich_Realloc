@@ -1,14 +1,12 @@
 #define ENABLE_PREDICTION 1
 #define ENABLE_UNSHRINK_NOW 1 // need enable prediction first
-#define MMAP_IN_SMALLSIZE 0
+// #define MMAP_IN_SMALLSIZE 0
 #define ENABLE_X2_ENHANCEMENT 1 // need enable prediction first
-#define ENABLE_HUGLETLB 0       // need additional checking before enable this
-#define ENABLE_SIZESAVE 0
+#define ENABLE_HUGLETLB 1       // need additional checking before enable this
 
-#define AGGRESIVE 0
-#define HEADLESS 16384
-#define MAPPING_POINT 16384         //16K
-#define SWITCH_POINT 131072         //128K
+#define HEADLESS 16384      // 16K
+#define MAPPING_POINT 16384 // 16K
+#define SWITCH_POINT 131072 // 128K
 
 #define MALLOC_HOTLEVEL 40
 #define MMAP_HOTLEVEL 20
