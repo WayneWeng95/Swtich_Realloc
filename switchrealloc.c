@@ -21,7 +21,7 @@ static size_t check_size(void *p)
     int r = sigsetjmp(env, 1);
     if (r == 0)
     {
-        size_t now_size = malloc_usable_size(p);        //seems influence to the performance
+        size_t now_size = malloc_usable_size(p); // seems influence to the performance
         // printf("size : %ld \n", now_size); // stopped here
         return now_size - SMALL_OFFSET;
     }
@@ -30,6 +30,21 @@ static size_t check_size(void *p)
         int *temp = (int *)p;
         temp = temp - 1;
         int size = *temp;
+        return size;
+    }
+}
+
+static size_t get_size(void *p)
+{
+    int *temp = (int *)p;
+    temp = temp - 1;
+    int size = *temp;
+    if (size < 0)
+    {
+        return size * -1;
+    }
+    else
+    {
         return size;
     }
 }
@@ -111,7 +126,15 @@ void *_malloc(size_t size)
 void *_realloc(void *ptr, size_t size)
 { // once realloc need to allocate space larger than 128Kb it switch from realloc to mremap
 
-    size_t old_size = check_size(ptr);
+    if (size <= HEADLESS)
+    {
+        void *block = NULL;
+        block = realloc(ptr, size);
+        // memset(block, 0, size);           //maybe necessary
+        return block;
+    }
+
+    size_t old_size = get_size(ptr);
     // printf("old_size is %ld \n", old_size);
     //   printf("new realloc size is %ld \n", size);
 

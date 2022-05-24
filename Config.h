@@ -4,7 +4,7 @@
 #define ENABLE_X2_ENHANCEMENT 0 // need enable prediction first
 #define ENABLE_HUGLETLB 0       // need additional checking before enable this
 
-#define HEADLESS 16384      // 16K
+#define HEADLESS 16384     // 4K
 #define MAPPING_POINT 16384 // 16K
 #define SWITCH_POINT 131072 // 128K
 
