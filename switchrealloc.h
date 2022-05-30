@@ -26,7 +26,7 @@
 // #define O_RDWR 02
 #define MS 1000000
 #define KB 1024
-#define X2_EH_SIZE 131072
+#define X2_EH_SIZE 131072         //using 128kib for exceeding the heap size limitation 64KiB
 //#define OFFSET sizeof(size_t) * 3
 #define SMALL_OFFSET 8
 #define OFFSET 24

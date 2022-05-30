@@ -1,5 +1,5 @@
 #include "Comparison.h"
-#include "switchrealloc.c"
+#include "switchrealloc.h"
 
 void *mmap_thread()
 {

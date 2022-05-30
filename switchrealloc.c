@@ -46,12 +46,6 @@ void *_malloc(size_t size)
 
 #if ENABLE_SIZESAVE
 
-    // if(size <= HEADLESS * KB){
-    //     TRY{
-
-    //     }
-    // }
-
     if (size <= MAPPING_POINT * KB)
     {
         size_t len = size + SMALL_OFFSET;
@@ -147,7 +141,7 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_X2_ENHANCEMENT
     if (size == plen[2] * 2)
     {
-        plen[1] += MMAP_HOTLEVEL / 3;
+        // plen[1] += MMAP_HOTLEVEL / 3;
         new_len = X2_ALIGN(new_len);
     }
 #endif
@@ -157,7 +151,7 @@ void *_realloc(void *ptr, size_t size)
 #if ENABLE_UNSHRINK_NOW
         if (plen[1] >= UNSHRINK_THRESHOULD)
         {
-            // plen[2] = size;
+            plen[1] -= SHRINKING_LEVEL;
             return (void *)(&plen[3]);
         }
 #endif
