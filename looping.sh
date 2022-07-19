@@ -3,7 +3,7 @@
 for ((i=0;i<$1;i++))
 do
 
-echo "iteration $i"
+#echo "iteration $i"
 
 #./../test $2 $3 $4 >> ../data/size/$2/$4.txt  #for data size
 
@@ -13,13 +13,15 @@ echo "iteration $i"
 
 #./test $2 $3 $4 >> $5.txt # for switch point testing
 
-./test1 $2 $3 $4 >> $2.txt  #for data size with same method
+# ./test1 $2 $3 $4 >> $2.txt  #for data size with same method
 
 #./test2 $2 >> $2.txt
 
+./executable/main $2 1 $3
+
 ./cleaning.sh
 
-sleep 10s
+sleep 5s
 
 done
 

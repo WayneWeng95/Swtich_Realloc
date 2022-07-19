@@ -1,4 +1,4 @@
-#include "switchrealloc.c"
+#include "switchrealloc.h"
 
 #define RANDNO 1000
 
@@ -139,7 +139,7 @@ void *_malloc_rand(int *p)
 
 int main()
 {
-    FILE *file = fopen("rand3.txt", "r");
+    FILE *file = fopen("page.txt", "r");
     int integers[sizeof(int) * RANDNO];
 
     int i = 0;
@@ -147,16 +147,21 @@ int main()
     while (fscanf(file, "%d", &num) > 0)
     {
         integers[i] = num;
-        //printf("N:%d\n", integers[i]);
+        // printf("N:%d\n", integers[i]);
         i++;
     }
     fclose(file);
 
-    malloc_rand(integers);
-    sleep(2);
-    mmap_rand(integers);
-    sleep(2);
-    _malloc_rand(integers);
+    for (int j = 0; j < 5; j++)
+    {
+        malloc_rand(integers);
+        sleep(2);
+        // mmap_rand(integers);
+        // sleep(2);
+        // _malloc_rand(integers);
+    }
+
+    
 
     return 0;
 }

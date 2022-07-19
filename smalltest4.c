@@ -1,4 +1,4 @@
-#include "switchrealloc.c"
+#include "switchrealloc.h"
 
 int main(){
 

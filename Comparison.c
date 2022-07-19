@@ -1,6 +1,7 @@
 #include "Comparison.h"
 #include "switchrealloc.h"
 
+
 void *mmap_thread()
 {
     size_t size_of_mem = INIT_SIZE;
@@ -38,15 +39,18 @@ void *mmap_thread()
            mremap() works with  aligned memory pages.
            How to properly increase shared memory in this case?
         */
-        gettimeofday(&start, NULL);
+        // gettimeofday(&start, NULL);
+        start_time = my_clock();
         if (ftruncate(fd, new_size_of_mem) == -1)
         {
             perror("Error in ftruncate");
             return NULL;
         }
         shm_address = (char *)mremap(shm_address, new_size_of_mem / 2, new_size_of_mem, MREMAP_MAYMOVE);
-        gettimeofday(&end, NULL);
+        end_time = my_clock();
         memcpy(shm_address, buffer, new_size_of_mem);
+        // char *output = (char *)shm_address;
+        // printf("%c\n",output[new_size_of_mem/8]);
         sleep(SLEEP_TIME);
         if (shm_address == (void *)-1)
         {
@@ -54,10 +58,11 @@ void *mmap_thread()
             return NULL;
         }
 
-        total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+        total_time += end_time-start_time;
     }
-    pid_t tid = gettid();
-    printf("MM : %d,%.0lf\n", tid, total_time);
+    //pid_t tid = gettid();
+    // printf("MM : %d,%.0lf\n", tid, total_time);
+    printf("%.0lf,",total_time);
     munmap(shm_address, new_size_of_mem);
 
     return 0;
@@ -153,17 +158,20 @@ void *malloc_thread()
     for (int i = 0; i < looping; ++i)
     {
         new_size_of_mem = new_size_of_mem * 2;
-        gettimeofday(&start, NULL);
+        start_time = my_clock();
         n = realloc(n, new_size_of_mem);
-        gettimeofday(&end, NULL);
+        end_time = my_clock();
         memcpy(n, buffer, new_size_of_mem);
         sleep(SLEEP_TIME);
-        total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+        total_time += end_time-start_time;
     }
 
-    pid_t tid = gettid();
+    //pid_t tid = gettid();
+    
+    sleep(30);
 
-    printf("MA : %d,%.0lf\n", tid, total_time);
+    // printf("MA : %d,%.0lf\n", tid, total_time);
+    printf("%.0lf,",total_time);
 
     free(n);
 
@@ -185,17 +193,18 @@ void *_malloc_thread() // This is a thread for simulating the function
     for (int i = 0; i < looping; ++i)
     {
         new_size_of_mem = new_size_of_mem * 2;
-        gettimeofday(&start, NULL);
+        start_time = my_clock();
         n = (char *)_realloc(n, new_size_of_mem);
-        gettimeofday(&end, NULL);
+        end_time = my_clock();
         memcpy(n, buffer, new_size_of_mem);
         sleep(SLEEP_TIME);
-        total_time += 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+        total_time += end_time-start_time;
     }
 
-    pid_t tid = gettid();
+    //pid_t tid = gettid();
 
-    printf("HY : %d,%.0lf\n", tid, total_time);
+    // printf("HY : %d,%.0lf\n", tid, total_time);
+    printf("%.0lf,",total_time);
 
     _free(n);
 

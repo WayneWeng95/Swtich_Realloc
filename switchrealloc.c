@@ -1,53 +1,29 @@
 #include "switchrealloc.h"
-// #include <linux/gfp.h>
 
-static void recvSignal(int sig)
-{
-    siglongjmp(env, 1);
-}
+// static size_t get_size(void *ptr)
+// {
+//     int *temp = (int *)ptr;
+//     temp = temp - 1;
+//     size_t size = temp[0];
+//     printf("%ld\n", size);
+//     return size;
+// }
 
-static size_t check_size(void *p)
-{
+// static void *__go_to_head(void *ptr)
+// {
+//     int *plen = (int *)ptr;
+//     plen = plen - 3;
+//     return (void *)plen;
+// }
 
-    signal(SIGSEGV, recvSignal);
-    int r = sigsetjmp(env, 1);
-    if (r == 0)
-    {
-        size_t now_size = malloc_usable_size(p); // big overhead by this operation
-        return now_size - SMALL_OFFSET;
-    }
-    else
-    {
-        int *temp = (int *)p;
-        temp = temp - 1;
-        int size = *temp;
-        return size;
-    }
-}
+// static void *__go_to_head_realloc(void *ptr)
+// {
+//     int *plen = (int *)ptr;
+//     plen = plen - 1;
+//     return (void *)plen;
+// }
 
-static size_t get_size(void *p)
-{
-    int *temp = (int *)p;
-    temp = temp - 1;
-    int size = *temp;
-    if (size < 0)
-    {
-        return size * -1;
-    }
-    else
-    {
-        return size;
-    }
-}
-
-static void *__go_to_head(void *ptr)
-{
-    int *plen = (int *)ptr;
-    plen = plen - 3;
-    return (void *)plen;
-}
-
-static int __create_fd(int size)
+static int __create_fd(size_t size)
 {
 
     int fd = shm_open("/myregion", O_CREAT | O_RDWR,
@@ -76,39 +52,35 @@ static int __create_fd(int size)
 
 void *_malloc(size_t size)
 { // In this malloc, switch between glibc malloc(Switch_point) and mmap(Switch_point)
+    int *block;
 
-    if (size <= 0)
+    if (size <= SWITCH_POINT)
     {
-        perror("Wrong size\n");
-        return NULL;
-    }
-    else if (size <= HEADLESS)
-    {
-        void *block = NULL;
-        block = malloc(size);
-        return block;
+        size_t len = size + SMALL_OFFSET;
+        block = malloc(len + 1);
+        block[0] = size;
+        return (void *)(&block[1]);
     }
     else
     {
         size_t len = size + OFFSET;
-        int *temp;
         len = PAGE_ALIGN(len);
         int fd = -1;
         fd = __create_fd(len);
 
-        temp = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
+        block = (int *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, fd, 0);
 
-        if (temp == MAP_FAILED)
+        if (block == MAP_FAILED)
         {
             perror("Error in mmap\n");
             return NULL;
         }
         else
         {
-            temp[0] = fd;   // fd
-            temp[1] = 0;    // counter
-            temp[2] = size; // size
-            return (void *)(&temp[3]);
+            block[0] = fd;   // fd
+            block[1] = 0;    // counter
+            block[2] = size; // size
+            return (void *)(&block[3]);
         }
     }
     return NULL;
@@ -117,17 +89,24 @@ void *_malloc(size_t size)
 void *_realloc(void *ptr, size_t size)
 { // once realloc need to allocate space larger than 128Kb it switch from realloc to mremap
 
-    if (size <= HEADLESS)
+    if (size <= 0)
     {
-        void *block = NULL;
-        block = realloc(ptr, size);
-        // memset(block, 0, size);           //maybe necessary
-        return block;
+        perror("Wrong size\n");
     }
 
-    size_t old_size = get_size(ptr);
-    // printf("old_size is %ld \n", old_size);
-    //   printf("new realloc size is %ld \n", size);
+    int *temp = (int *)ptr;
+    temp = temp - 1;
+    size_t old_size = temp[0];
+    size_t old_len;
+    if (old_size <= SWITCH_POINT)
+    {
+        old_len = old_size + SMALL_OFFSET;
+    }
+    else
+    {
+        old_len = old_size + OFFSET;
+        temp = temp -2;
+    }
 
 #if ENABLE_X2_ENHANCEMENT
     if (size - old_size * 2 == 0)
@@ -135,99 +114,99 @@ void *_realloc(void *ptr, size_t size)
         size = X2_ALIGN(size);
     }
 #endif
+    void *block = NULL;
 
-    if (size <= 0)
+    // if (old_size <= SWITCH_POINT) // Got the correct memory pointer file.
+    // {
+    //     block = __go_to_head_realloc(ptr);
+    // }
+    // else
+    // {
+    //     block = __go_to_head(ptr);
+    // }
+
+    if (size <= SWITCH_POINT)
     {
-        perror("Wrong size\n");
+        size_t new_len = size + SMALL_OFFSET;
+        if (old_size <= SWITCH_POINT) // old size <= Switch && new size <= Switch, realloc
+        {
+            temp = realloc(temp, new_len);
+            temp[0] = size;
+            // memset(block, 0, size);           //maybe necessary
+            return (void *)(&temp[1]);
+        }
+        else // old size > Switch && new size <= Switch, malloc-copy-free
+        {
+            block = _malloc(size);
+            memcpy(block, ptr, size); // check copy length      check the ptr address
+            temp = temp + 3;
+            _free(temp);
+            // memset(block, 0, size);           //maybe necessary
+            return temp;
+        }
     }
-    else if (0 <= size && size <= HEADLESS)
-    {
-
-        void *block = NULL;
-        block = malloc(size);
-        // memset(block, 0, size);           //maybe necessary
-        if (size >= old_size)
-        {
-            memcpy(block, ptr, old_size);
-        }
-        else
-        {
-            memcpy(block, ptr, size);
-        }
-
-        if (old_size <= HEADLESS)
-        {
-            free(ptr);
-        }
-
-        return block;
-    }
-
     else
     {
-        int *temp = (int *)ptr;
-        size_t new_size = size + OFFSET;
-        // printf("old_size is %ld \n", old_size);
-        // printf("new_size is %ld \n", new_size);
-
-        if (old_size <= HEADLESS)
+        if (old_size <= SWITCH_POINT) // old size <= Switch && new size > Switch, mmap-copy-free
         {
-            void *block = NULL;
             block = _malloc(size);
-            // memset(temp, 0, old_size);
             memcpy(block, ptr, old_size);
-            free(ptr);
+            temp = temp + 1;
+            _free(temp);
             return block;
         }
-        else
+        else // old size > Switch && new size > Switch, mremap
         {
-            temp = temp - 3; // move to head;
 
             int fd = temp[0];
-            new_size = PAGE_ALIGN(new_size);
+            size_t new_len = size + OFFSET;
 
 #if ENABLE_X2_ENHANCEMENT
             if (size == old_size * 2)
             {
                 // plen[1] += MMAP_HOTLEVEL / 3;
-                new_size = X2_ALIGN(new_size);
+                new_len = X2_ALIGN(new_len);
             }
 #endif
 
-#if ENABLE_HUGLETLB
+#if ENABLE_HUGLETLB                     // mmap a new area and move the content
             if (size >= HUGE_TLB_POINT) // && temp[1] >= MMAP_HOTLEVEL &&)
             {
-                new_size = HUGE_PAGE_ALIGN(new_size + OFFSET);
+                //mmap a new hugeTLB entry
+                new_len = HUGE_PAGE_ALIGN(new_len);
             }
 #endif
 
 #if ENABLE_PREDICTION
             if (size >= old_size)
             {
-                temp[1] += 1;
+                block[1] += 1;
             }
             else
             {
-                temp[1] -= 1;
-                if (temp[1] < 1)
-                    temp[1] = 0;
+                block[1] -= 1;
+                if (block[1] < 1)
+                    block[1] = 0;
             }
 
 #if ENABLE_UNSHRINK_NOW
-            if (temp[1] >= UNSHRINK_THRESHOULD)
+            if (block[1] >= UNSHRINK_THRESHOULD)
             {
-                return (void *)(&temp[3]);
+                return (void *)(&block[3]);
             }
 #endif
 
 #endif
-            if (ftruncate(fd, new_size) == -1)
+
+            if (ftruncate(fd, new_len) == -1)
             {
                 perror("Error in ftruncate");
                 return NULL;
             }
 
-            temp = (int *)mremap(temp, old_size, new_size, MREMAP_MAYMOVE);
+            temp = (int *)mremap(temp, old_len, new_len, MREMAP_MAYMOVE);
+
+            // fprintf(stderr, "remap\n");
 
             // This was added in the 5.7 kernel as a new flag to mremap(2) called MREMAP_DONTUNMAP.
             //  This leaves the existing mapping in place after moving the page table entries.
@@ -238,15 +217,11 @@ void *_realloc(void *ptr, size_t size)
     }
 
     return NULL;
-
-    // alloc_pages(GFP_KERNEL,2);
-
 }
 
 void *_calloc(size_t nitems, size_t size) // Further look
 {
-    void *block = NULL;
-    ;
+    int *block;
 
     if (size <= 0)
     {
@@ -254,23 +229,21 @@ void *_calloc(size_t nitems, size_t size) // Further look
     }
     else if (size <= HEADLESS)
     {
-        block = calloc(nitems, size);
-        return block;
+        block = (int *)calloc(nitems + 1, size);
+        block[0] = size;
+        return (void *)(&block[1]);
     }
     else
     {
-        size_t len = size + OFFSET;
-        int *temp = (int *)block;
-        len = PAGE_ALIGN(len);
         int fd = -1;
-        temp = (int *)calloc(nitems, len);
+        block = (int *)calloc(nitems + 3, size);
 
-        if (temp)
+        if (block)
         {
-            temp[0] = fd;   // fd
-            temp[1] = 0;    // counter
-            temp[2] = size; // size
-            return (void *)(&temp[3]);
+            block[0] = fd;   // fd refixing the fd
+            block[1] = 0;    // counter
+            block[2] = size; // size
+            return (void *)(&block[3]);
         }
         else
         {
@@ -284,17 +257,19 @@ void *_calloc(size_t nitems, size_t size) // Further look
 void _free(void *ptr)
 {
 
-    int size = check_size(ptr);
-    // printf("size is %d \n",size);
+    int *temp = (int *)ptr;
+    temp = temp - 1;
+    size_t size = temp[0];
+    printf("size is %ld \n", size);
 
-    if (size <= HEADLESS && size >= 0)
+    if (size <= SWITCH_POINT)
     {
-        free(ptr);
+        free(temp);
     }
     else
     {
-        int *plen = (int *)__go_to_head(ptr);
-        munmap((void *)plen, plen[2]);
+        temp = temp - 2;
+        munmap((void *)temp, temp[2] + OFFSET);
     }
 }
 
